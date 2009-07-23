@@ -65,6 +65,10 @@ module MongoMapper
         if key.options[:required]
           validates_presence_of(attribute)
         end
+        
+        if key.options[:valid]
+          include_validataions_from(attribute)
+        end
 
         if key.options[:unique]
           validates_uniqueness_of(attribute)
