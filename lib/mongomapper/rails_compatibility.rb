@@ -17,7 +17,7 @@ module MongoMapper
     end
 
     def to_param
-      id
+      _root.id
     end
   end
 end

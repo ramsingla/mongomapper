@@ -9,7 +9,6 @@ module MongoMapper
         include Observing
         include Callbacks
         include SaveWithValidation
-        include RailsCompatibility
         extend ClassMethods
 
         key :_id, String
@@ -138,18 +137,6 @@ module MongoMapper
           @collection = database.collection(name)
         end
         @collection
-      end
-
-      def validates_uniqueness_of(*args)
-        add_validations(args, MongoMapper::Validations::ValidatesUniquenessOf)
-      end
-
-      def validates_exclusion_of(*args)
-        add_validations(args, MongoMapper::Validations::ValidatesExclusionOf)
-      end
-
-      def validates_inclusion_of(*args)
-        add_validations(args, MongoMapper::Validations::ValidatesInclusionOf)
       end
 
     private

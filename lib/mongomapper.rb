@@ -9,14 +9,6 @@ require 'activesupport'
 require 'mongo'
 require 'validatable'
 
-if RUBY_VERSION.to_f == 1.8
-  class BlankSlate #:nodoc:
-    instance_methods.each { |m| undef_method m unless m =~ /^__|instance_eval/ }
-  end
-else
-  class BlankSlate < BasicObject; end
-end
-
 dir = Pathname(__FILE__).dirname.expand_path + 'mongomapper'
 
 require dir + 'callbacks'

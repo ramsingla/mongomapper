@@ -2,12 +2,12 @@
 
 Gem::Specification.new do |s|
   s.name = %q{mongomapper}
-  s.version = "0.2.0"
+  s.version = "0.2.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["John Nunemaker"]
-  s.date = %q{2009-07-07}
-  s.email = %q{nunemaker@gmail.com}
+  s.authors = ["John Nunemaker", "Ram Singla"]
+  s.date = %q{2009-07-23}
+  s.email = %q{ram.singla@gmail.com}
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
      "lib/mongomapper/finder_options.rb",
      "lib/mongomapper/key.rb",
      "lib/mongomapper/observing.rb",
+     "lib/mongomapper/pagination.rb",
      "lib/mongomapper/rails_compatibility.rb",
      "lib/mongomapper/save_with_validation.rb",
      "lib/mongomapper/serialization.rb",

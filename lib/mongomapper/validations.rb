@@ -3,8 +3,8 @@ module MongoMapper
     class ValidatesUniquenessOf < Validatable::ValidationBase
       def valid?(instance)
         # TODO: scope
-        doc = instance.class.find(:first, :conditions => {self.attribute => instance[attribute]}, :limit => 1)
-        doc.nil? || instance.id == doc.id
+        doc = instance._root.class.find(:first, :conditions => { instance.full_key_path(self.attribute) => instance[attribute]}, :limit => 1)
+        doc.nil? || instance._root.id == doc.id
       end
 
       def message(instance)

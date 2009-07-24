@@ -14,10 +14,12 @@ module MongoMapper
 
         include Validatable
         include Serialization
+        include RailsCompatibility
       end
     end
 
     module ClassMethods
+      
       def keys
         @keys ||= if parent = parent_model
           parent.keys.dup
@@ -63,47 +65,82 @@ module MongoMapper
         attribute = key.name.to_sym
 
         if key.options[:required]
-          validates_presence_of(attribute)
+          validates_presence_of(attribute, :message => "#{attribute}.not.present")
         end
         
         if key.options[:valid]
-          include_validataions_from(attribute)
+          validates_true_for attribute, :logic => lambda{  ( valid = send( attribute ).try( :valid? ) ).nil? ? true : valid  }, :message => "#{attribute}.record.invalid"
         end
 
         if key.options[:unique]
-          validates_uniqueness_of(attribute)
+          validates_uniqueness_of(attribute, :message => "#{attribute}.already.taken")
         end
 
         if key.options[:numeric]
-          number_options = key.type == Integer ? {:only_integer => true} : {}
+          number_options = key.type == Integer ? { :only_integer => true, :message => "#{attribute}.not.integer" } : { :message => "#{attribute}.not.numeric" }
           validates_numericality_of(attribute, number_options)
         end
 
         if key.options[:format]
-          validates_format_of(attribute, :with => key.options[:format])
+          validates_format_of(attribute, :with => key.options[:format], :message => "#{attribute}.format.invalid")
         end
 
         if key.options[:length]
           length_options = case key.options[:length]
           when Integer
-            {:minimum => 0, :maximum => key.options[:length]}
+            {:minimum => 0, :maximum => key.options[:length], :message => "#{attribute}.exceeds.max_length"}
           when Range
-            {:within => key.options[:length]}
+            {:within => key.options[:length], :message => "#{attribute}.length.out_of_bounds"}
           when Hash
-            key.options[:length]
+            key.options[:length].merge!(:message => "#{attribute}.length.invalid")
           end
           validates_length_of(attribute, length_options)
         end
+      end
+      
+      def validates_uniqueness_of(*args)
+        add_validations(args, MongoMapper::Validations::ValidatesUniquenessOf)
+      end
+
+      def validates_exclusion_of(*args)
+        add_validations(args, MongoMapper::Validations::ValidatesExclusionOf)
+      end
+
+      def validates_inclusion_of(*args)
+        add_validations(args, MongoMapper::Validations::ValidatesInclusionOf)
       end
 
     end
 
     module InstanceMethods
+      
+      #
+      # Metadata attributes for fancy magic
+      # e.g.  full_key_name  e.g. account.login, name.first
+      #       user.account.new? => user.new?
+      #       validates_uniqueness_of in embedded document
+      #       callbacks in embedded document (TODO)
+      #
+      attr_reader :_root        # The Mongo::Document which is the root doc
+      attr_reader :_parent      # The parent document. For root parent is nil
+      attr_reader :_parent_key  # The key name of the embedded document in parent doc
+      
       def initialize(attrs={})
+        @_root = self.class.include?(MongoMapper::Document) ? self : nil
+        @_parent = nil
+        @_parent_key = nil
         unless attrs.nil?
           initialize_associations(attrs)
           self.attributes = attrs
         end
+      end
+      
+      def new?
+        _root.try(:new?)
+      end
+      
+      def full_key_path(name)
+        _parent ? _parent.full_key_path("#{_parent_key}.#{name}") : name
       end
 
       def attributes=(attrs)
@@ -201,7 +238,14 @@ module MongoMapper
 
       def write_attribute(name, value)
         instance_variable_set "@#{name}_before_typecast", value
-        instance_variable_set "@#{name}", defined_key(name).set(value)
+        key = defined_key(name)
+        result = instance_variable_set "@#{name}", key.set(value)
+        if key.type.include?(MongoMapper::EmbeddedDocument) && !key.type.include?(MongoMapper::Document)
+          attribute_val = read_attribute(name)
+          attribute_val.instance_variable_set("@_root",       self._root)
+          attribute_val.instance_variable_set("@_parent",     self)
+          attribute_val.instance_variable_set("@_parent_key", name)
+        end
       end
 
       def defined_key(name)
